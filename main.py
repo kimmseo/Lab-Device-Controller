@@ -1,7 +1,7 @@
 import typer
 import pyvisa
 
-# --- Local Imports ---
+# Local Imports
 # Import the shared resource manager instance
 from visa_manager import rm
 # Import the specific instrument controller
