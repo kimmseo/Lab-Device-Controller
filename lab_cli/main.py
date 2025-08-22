@@ -85,7 +85,7 @@ def list_equipment():
 def get_status(
     equipment_id: str = typer.Argument(
         ...,    # requires arguments
-        help="The unique identifier for the equipment (e.g., 'laser-01').",
+        help="The unique identifier for the equipment (e.g., 'laser_1').",
         metavar="EQUIPMENT_ID"
     )
 ):
