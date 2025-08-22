@@ -1,2 +1,38 @@
+# pyproject.toml
+
+# This section specifies the build system to use.
+# setuptools is a standard and reliable choice.
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+# This section contains the project's core metadata.
+[project]
+name = "lab-cli"
+version = "0.1.0"
+authors = [
+  { name="Your Name", email="you@example.com" },
+]
+description = "A CLI tool to monitor the status of lab equipment."
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GPL-3.0 License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering",
+    "Environment :: Console",
+]
+
+# List your project's dependencies here.
+# 'rich' is included with typer by default, but specifying it
+# makes the dependency explicit.
+dependencies = [
+    "typer[all]",
+    "rich",
+]
+
+# This section defines the command-line scripts that should be
+# created when the package is installed.
 [project.scripts]
-greet = "main.cli:app"
+lab-cli = "lab_cli.main:app"
