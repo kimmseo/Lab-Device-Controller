@@ -1,4 +1,3 @@
-# equipment_api.py
 import time
 import random
 from typing import Dict, Optional, Any
