@@ -12,51 +12,20 @@ app = typer.Typer(
     pretty_exceptions_show_locals=False
 )
 
-# Initialize Rich console for beautiful output
+# Initialize Rich console
 console = Console()
 
 # --- Mock Data ---
 # In a real application, this data would come from a database, API,
-# or direct communication with the equipment.
+# or direct communication with the equipment <- preferred
 MOCK_EQUIPMENT_DATA = {
     "laser-01": {
-        "type": "Femtosecond Laser",
+        "type": "Laser_1",
         "status": "Active",
-        "power_mw": 85.3,
-        "wavelength_nm": 1030,
-        "last_check": "2025-08-22 12:30:15",
+        "power_mw": 10.00,
+        "wavelength_nm": 1550.00,
+        "last_check": "2025-08-22 12:30:15",    # Datetime format
         "operator": "Dr. Evelyn Reed",
-    },
-    "osc-01": {
-        "type": "Digital Oscilloscope",
-        "status": "Idle",
-        "channels_active": 2,
-        "sample_rate_gs": 5.0,
-        "last_check": "2025-08-22 12:35:02",
-        "operator": "N/A",
-    },
-    "spec-01": {
-        "type": "Spectrometer",
-        "status": "Error",
-        "error_code": "E-CAL-003",
-        "details": "Calibration failed. Needs reset.",
-        "last_check": "2025-08-22 12:25:45",
-        "operator": "John Carter",
-    },
-    "pwr-supply-01": {
-        "type": "DC Power Supply",
-        "status": "Active",
-        "voltage_v": 5.01,
-        "current_a": 1.25,
-        "last_check": "2025-08-22 12:36:10",
-        "operator": "Dr. Evelyn Reed",
-    },
-    "laser-02": {
-        "type": "Diode Laser",
-        "status": "Maintenance",
-        "details": "Scheduled alignment check.",
-        "last_check": "2025-08-21 09:00:00",
-        "operator": "Tech Team",
     },
 }
 
@@ -145,7 +114,7 @@ def get_status(
     table.add_row("ID:", equipment_id)
     table.add_row("Type:", data.get("type", "N/A"))
     table.add_row("Status:", f"[{status_color}]{status}[/{status_color}]")
-    table.add_row("-" * 10, "-" * 30) # Separator
+    table.add_row("-" * 10, "-" * 30)   # Separator
 
     # Add specific details based on equipment status and type
     if status == "Active":

@@ -41,7 +41,7 @@ class Oscilloscope(Equipment):
     Adds oscilloscope-specific attributes.
     """
     channels_active: Optional[int] = None
-    sample_rate_gs: Optional[float] = None # Giga-samples per second
+    sample_rate_gs: Optional[float] = None  # Giga-samples per second
 
 @dataclass
 class PowerSupply(Equipment):
