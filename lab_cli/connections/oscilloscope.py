@@ -1,5 +1,7 @@
 import pyvisa
 import platform
+import datetime
+import time
 
 '''
 Oscilloscope connection
@@ -41,6 +43,91 @@ def connect_oscilloscope():
         print(f"An unexpected error occurred: {e}")
         return None
 
+def capture_scope_screen(scope_address: str, save_path: str = "."):
+    """
+    Connects to an oscilloscope, captures its screen, and saves it as a PNG file.
+    """
+    scope = None
+    try:
+        rm = pyvisa.ResourceManager()
+        scope = rm.open_resource(scope_address)
+        scope.timeout = 15000
+
+        print("Requesting screen data from oscilloscope...")
+        image_data = scope.query_binary_values(
+            ':DISPlay:DATA? PNG, COLor',
+            datatype='B',
+            container=bytes
+        )
+
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        filename = f"{save_path}/keysight_capture_{timestamp}.png"
+
+        with open(filename, 'wb') as f:
+            f.write(image_data)
+
+        print(f"Screen captured successfully and saved to: {filename}")
+        return True
+
+    except pyvisa.errors.VisaIOError as e:
+        print(f"VISA Error: Could not communicate with the scope. Details: {e}")
+        return False
+    finally:
+        if scope:
+            scope.close()
+        print("Connection closed.")
+
+
+def arm_and_capture(scope_address: str, save_path: str = "."):
+    """
+    Arms the oscilloscope to wait for an external trigger,
+    and saves the screen once the acquisition is complete.
+    """
+    scope = None
+    try:
+        rm = pyvisa.ResourceManager()
+        scope = rm.open_resource(scope_address)
+        scope.timeout = 20000
+        scope.clear()
+
+        print("Configuring oscilloscope for single external trigger...")
+        scope.write(':STOP')
+        scope.write(':TRIGger:SWEep NORMal')
+        scope.write(':TRIGger:EDGE:SOURce EXTernal')
+        scope.write(':SINGle')
+
+        print("Oscilloscope armed. Waiting for trigger signal...")
+        scope.query('*OPC?')
+        print("Trigger received and acquisition complete!")
+        time.sleep(1)
+
+        print("Requesting screen data...")
+        image_data = scope.query_binary_values(
+            ':DISPlay:DATA? PNG, COLor',
+            datatype='B',
+            container=bytes
+        )
+
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        filename = f"{save_path}/triggered_capture_{timestamp}.png"
+
+        with open(filename, 'wb') as f:
+            f.write(image_data)
+
+        print(f"✅ Screen captured successfully and saved to: {filename}")
+        return True
+
+    except pyvisa.errors.VisaIOError as e:
+        if "VI_ERROR_TMO" in str(e):
+            print("\nOperation timed out. No trigger was received.")
+        else:
+            print(f"\nVISA Error: {e}")
+        return False
+    finally:
+        if scope:
+            scope.write(":RUN")
+            scope.close()
+        print("Connection closed.")
 
 if __name__ == "__main__":
     print("Connecting to oscilloscope...")
