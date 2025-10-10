@@ -114,7 +114,7 @@ def arm_and_capture(scope_address: str, save_path: str = "."):
         with open(filename, 'wb') as f:
             f.write(image_data)
 
-        print(f"✅ Screen captured successfully and saved to: {filename}")
+        print(f"Screen captured successfully and saved to: {filename}")
         return True
 
     except pyvisa.errors.VisaIOError as e:
