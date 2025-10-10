@@ -29,6 +29,9 @@ def connect_oscilloscope():
     scope = None
 
     try:
+        # In case below doesn't work
+        #rm_oscil = pyvisa.ResourceManager(r"C:\Windows\System32\visa64.dll")
+
         # Automatically search for the installed PyVISA backend
         rm_oscil = pyvisa.ResourceManager()
 
