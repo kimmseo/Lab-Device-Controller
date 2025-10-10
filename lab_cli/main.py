@@ -4,6 +4,12 @@ from rich.table import Table
 import time
 import random
 
+# Connections
+from connections.oscilloscope import connect_oscilloscope # <-- ADD THIS
+
+# Data models
+from models import create_equipment_model, Laser, Oscilloscope, PowerSupply, Spectrometer, MaintenanceDevice # <-- ADD THIS
+
 # Create a Typer application instance
 app = typer.Typer(
     help="CLI to monitor the status of lab equipment.",
@@ -15,24 +21,28 @@ app = typer.Typer(
 # Initialize Rich console
 console = Console()
 
-# --- Mock Data ---
-# In a real application, this data would come from a database, API,
-# or direct communication with the equipment <- preferred
+# Mock data for placeholder
 MOCK_EQUIPMENT_DATA = {
     "laser-01": {
-        "type": "Laser_1",
+        "type": "Femtosecond Laser",
         "status": "Active",
         "power_mw": 10.00,
-        "wavelength_nm": 1550.00,
-        "last_check": "2025-08-22 12:30:15",    # Datetime format
+        "wavelength_nm": 1550,
+        "last_check": "2025-08-22 12:30:15",
         "operator": "Dr. Evelyn Reed",
     },
+    # Placeholder for oscilloscope
+    "scope-01": { # <-- ADD THIS BLOCK
+        "type": "Digital Oscilloscope",
+        "status": "Idle",
+        "details": "Awaiting connection...",
+        "last_check": "N/A",
+        "operator": "N/A"
+    }
 }
 
-# --- Helper Functions ---
-
+# Helper functions
 def get_status_color(status: str) -> str:
-    """Returns a color string for Rich based on the equipment status."""
     status = status.lower()
     if status == "active":
         return "green"
@@ -44,29 +54,17 @@ def get_status_color(status: str) -> str:
         return "cyan"
     return "white"
 
-
-# --- CLI Commands ---
-
+# CLI Commands
 @app.command(name="list", help="List all available lab equipment and their current status.")
 def list_equipment():
-    """
-    Displays a summary table of all equipment.
-    This function simulates fetching the status for all devices and
-    presents it in a clean, readable table.
-    """
     console.print("\n[bold blue]Lab Equipment Status Overview[/bold blue]")
-
-    # Create a table using Rich
     table = Table(show_header=True, header_style="bold magenta")
     table.add_column("ID", style="dim", width=15)
     table.add_column("Type")
     table.add_column("Status", justify="center")
     table.add_column("Last Checked")
-
     with console.status("[bold green]Fetching latest equipment data...[/bold green]"):
-        time.sleep(0.5) # Simulate network delay
-
-        # Populate the table with mock data
+        time.sleep(0.5)
         for eq_id, data in MOCK_EQUIPMENT_DATA.items():
             status = data.get("status", "Unknown")
             status_color = get_status_color(status)
@@ -76,73 +74,106 @@ def list_equipment():
                 f"[{status_color}]{status}[/{status_color}]",
                 data.get("last_check", "N/A"),
             )
-
     console.print(table)
-    console.print("Use '[bold]status <ID>[/bold]' to see more details for a specific device.\n")
+    console.print("Use '[bold]status <ID>[/bold]' or '[bold]connect <ID>[/bold]' for more actions.\n")
 
 
 @app.command(name="status", help="Get the detailed status of a specific piece of equipment.")
 def get_status(
     equipment_id: str = typer.Argument(
-        ...,    # requires arguments
-        help="The unique identifier for the equipment (e.g., 'laser_1').",
+        ...,
+        help="The unique identifier for the equipment (e.g., 'laser-01').",
         metavar="EQUIPMENT_ID"
     )
 ):
     """
     Fetches and displays detailed information for a single piece of equipment.
-    Queries the specific device.
+    Refactored to use the dataclass factory from models.py.
     """
     console.print(f"\n[bold blue]Querying status for:[/] [bold yellow]{equipment_id}[/bold yellow]")
-
-    with console.status(f"[bold green]Contacting {equipment_id}...[/bold green]"):
-        time.sleep(0.5) # Delay for device connection
+    with console.status(f"[bold green]Fetching data for {equipment_id}...[/bold green]"):
+        time.sleep(0.5)
         data = MOCK_EQUIPMENT_DATA.get(equipment_id.lower())
 
     if not data:
         console.print(f"[bold red]Error:[/] Equipment ID '{equipment_id}' not found.")
         raise typer.Exit(code=1)
 
-    status = data.get("status", "Unknown")
-    status_color = get_status_color(status)
+    # Create structed object using factory
+    equipment = create_equipment_model(equipment_id, data)
 
-    # Display details in a formatted table
     table = Table(show_header=False, box=None, padding=(0, 2))
     table.add_column(style="bold cyan")
     table.add_column()
 
-    table.add_row("ID:", equipment_id)
-    table.add_row("Type:", data.get("type", "N/A"))
-    table.add_row("Status:", f"[{status_color}]{status}[/{status_color}]")
-    table.add_row("-" * 10, "-" * 30)   # Separator
+    status_color = get_status_color(equipment.status)
+    table.add_row("ID:", equipment.id)
+    table.add_row("Type:", equipment.type)
+    table.add_row("Status:", f"[{status_color}]{equipment.status}[/{status_color}]")
+    table.add_row("-" * 10, "-" * 30)
 
-    # Add specific details based on equipment status and type
-    if status == "Active":
-        if "power_mw" in data:
-            table.add_row("Power:", f"{data['power_mw']} mW")
-        if "wavelength_nm" in data:
-            table.add_row("Wavelength:", f"{data['wavelength_nm']} nm")
-        if "voltage_v" in data:
-            table.add_row("Voltage:", f"{data['voltage_v']} V")
-        if "current_a" in data:
-            table.add_row("Current:", f"{data['current_a']} A")
-    elif status == "Idle":
-        if "channels_active" in data:
-             table.add_row("Active Channels:", str(data['channels_active']))
-    elif status == "Error":
-         table.add_row("Error Code:", f"[bold red]{data.get('error_code', 'N/A')}[/bold red]")
-         table.add_row("Details:", data.get('details', ''))
-    elif status == "Maintenance":
-         table.add_row("Details:", data.get('details', ''))
+    # Display details based on object types
+    if isinstance(equipment, Oscilloscope):
+        table.add_row("Active Channels:", str(equipment.channels_active or "N/A"))
+        table.add_row("Sample Rate:", f"{equipment.sample_rate_gs or 'N/A'} Gs/S")
+        if equipment.details:
+            table.add_row("Details:", equipment.details)
+    elif isinstance(equipment, Laser):
+        table.add_row("Power:", f"{equipment.power_mw} mW")
+        table.add_row("Wavelength:", f"{equipment.wavelength_nm} nm")
+    # for other objects
+    elif isinstance(equipment, (Spectrometer, MaintenanceDevice)):
+         table.add_row("Details:", equipment.details or 'N/A')
 
     table.add_row("-" * 10, "-" * 30)
-    table.add_row("Operator:", data.get("operator", "N/A"))
-    table.add_row("Last Check:", data.get("last_check", "N/A"))
-
+    table.add_row("Operator:", equipment.operator or "N/A")
+    table.add_row("Last Check:", equipment.last_check or "N/A")
     console.print(table)
-    console.print()
+
+# Command to connect to hardware
+@app.command(name="connect", help="Connect to a piece of equipment to get live data.")
+def connect_to_device(
+    equipment_id: str = typer.Argument(
+        ...,
+        help="The ID of the equipment to connect to (e.g., 'scope-01').",
+        metavar="EQUIPMENT_ID"
+    )
+):
+    """
+    Connects to physical hardware and updates its status.
+    """
+    equipment_id = equipment_id.lower()
+    if "scope" not in equipment_id:
+        console.print(f"[bold red]Error:[/] Connection logic for '{equipment_id}' is not implemented.")
+        raise typer.Exit(code=1)
+
+    with console.status(f"[bold green]Connecting to {equipment_id} via VISA...[/bold green]"):
+        scope = connect_oscilloscope() # Call the imported function
+
+    if not scope:
+        console.print(f"[bold red]Failed to connect to {equipment_id}.[/bold red] Check network and VISA drivers.")
+        MOCK_EQUIPMENT_DATA[equipment_id]['status'] = 'Error'
+        MOCK_EQUIPMENT_DATA[equipment_id]['details'] = 'Connection via VISA failed.'
+        raise typer.Exit(code=1)
+
+    # If connection success get live data
+    try:
+        idn = scope.query("*IDN?").strip()
+        console.print(f"[bold green]Successfully connected![/bold green]")
+        console.print(f"[bold]Device ID:[/bold] {idn}")
+
+        # Update db with live data
+        MOCK_EQUIPMENT_DATA[equipment_id]['status'] = 'Active'
+        MOCK_EQUIPMENT_DATA[equipment_id]['details'] = idn # Store the ID string
+        MOCK_EQUIPMENT_DATA[equipment_id]['last_check'] = time.strftime("%Y-%m-%d %H:%M:%S")
+        MOCK_EQUIPMENT_DATA[equipment_id]['operator'] = "CLI User"
+
+    except Exception as e:
+        console.print(f"[bold red]Error during communication: {e}[/bold red]")
+    finally:
+        scope.close()   # IMPORTANT: Always close the connection
+        console.print("   Connection closed.")
 
 
 if __name__ == "__main__":
-
     app()
