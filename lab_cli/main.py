@@ -1,14 +1,16 @@
 import typer
 from rich.console import Console
 from rich.table import Table
+from rich.prompt import Prompt
+import shlex # for safe argument splitting
 import time
 import random
 
 # Connections
-from connections.oscilloscope import connect_oscilloscope # <-- ADD THIS
+from .connections.oscilloscope import connect_oscilloscope
 
 # Data models
-from models import create_equipment_model, Laser, Oscilloscope, PowerSupply, Spectrometer, MaintenanceDevice # <-- ADD THIS
+from .models import create_equipment_model, Laser, Oscilloscope, PowerSupply, Spectrometer, MaintenanceDevice # <-- ADD THIS
 
 # Create a Typer application instance
 app = typer.Typer(
@@ -148,7 +150,7 @@ def connect_to_device(
         raise typer.Exit(code=1)
 
     with console.status(f"[bold green]Connecting to {equipment_id} via VISA...[/bold green]"):
-        scope = connect_oscilloscope() # Call the imported function
+        scope = connect_oscilloscope()
 
     if not scope:
         console.print(f"[bold red]Failed to connect to {equipment_id}.[/bold red] Check network and VISA drivers.")
@@ -174,6 +176,43 @@ def connect_to_device(
         scope.close()   # IMPORTANT: Always close the connection
         console.print("   Connection closed.")
 
+@app.command(name="shell", help="Enter an interactive shell to run multiple commands.")
+def shell():
+    """
+    Starts an interactive session to run multiple commands without exiting.
+    """
+    console.print("\n[bold green]Entering interactive lab shell.[/bold green]")
+    console.print("Type '[bold cyan]exit[/bold cyan]' or '[bold cyan]quit[/bold cyan]' to leave.")
+
+    while True:
+        try:
+            command = Prompt.ask("[bold magenta]lab-cli >[/bold magenta]", default="")
+
+            if command.lower() in ["exit", "quit"]:
+                console.print("[bold yellow]Exiting shell.[/bold yellow]")
+                break
+
+            if not command.strip():
+                continue
+
+            args = shlex.split(command)
+
+            # Programmatically invoke the Typer app with the parsed arguments
+            # We wrap this in a try/except block to catch sys.exit()
+            try:
+                app(args, standalone_mode=False)
+            except SystemExit as e:
+                # A non-zero exit code from Typer usually means an error occurred
+                # (e.g., command not found, bad argument). We can ignore code 0.
+                if e.code != 0:
+                     console.print(f"[bold red]Command finished with error code: {e.code}[/bold red]")
+
+        except KeyboardInterrupt:
+            # Handle Ctrl+C gracefully
+            console.print("\n[bold yellow]Exiting shell.[/bold yellow]")
+            break
+        except Exception as e:
+            console.print(f"[bold red]An unexpected error occurred: {e}[/bold red]")
 
 if __name__ == "__main__":
     app()

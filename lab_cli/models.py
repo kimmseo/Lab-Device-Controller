@@ -42,6 +42,7 @@ class Oscilloscope(Equipment):
     """
     channels_active: Optional[int] = None
     sample_rate_gs: Optional[float] = None  # Giga-samples per second
+    details: Optional[str] = None
 
 @dataclass
 class PowerSupply(Equipment):
