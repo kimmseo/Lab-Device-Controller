@@ -153,6 +153,8 @@ def connect_to_device(
     with console.status(f"[bold green]Connecting to {equipment_id} via VISA...[/bold green]"):
         scope = connect_oscilloscope()
 
+        # TODO: Add scope for connect_laser_via_server()
+        # Need to figure out how to differentiate between different types of devices
 
 
     if not scope:
