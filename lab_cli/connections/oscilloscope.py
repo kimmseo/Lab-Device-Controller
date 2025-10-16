@@ -10,7 +10,6 @@ Changes: Made file path dynamic instead of static
 '''
 
 def find_visa_library():
-    # ... (function content remains the same)
     if platform.system() == "Windows":
         return None
     else:
