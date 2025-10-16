@@ -85,7 +85,7 @@ if __name__ == "__main__":
 
     if laser:
         try:
-            idn_response = laser.query("*IDN").strip()
+            idn_response = laser.query("*IDN?").strip()
             print("Laser proxy client ready, Laser ID: ", idn_response)
             laser.close()
         except pyvisa.errors.VisaIOError as e:

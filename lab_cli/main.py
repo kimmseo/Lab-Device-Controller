@@ -8,6 +8,7 @@ import random
 
 # Connections
 from .connections.oscilloscope import connect_oscilloscope
+from .connections.laser import connect_laser_via_server
 
 # Data models
 from .models import create_equipment_model, Laser, Oscilloscope, PowerSupply, Spectrometer, MaintenanceDevice # <-- ADD THIS
@@ -151,6 +152,8 @@ def connect_to_device(
 
     with console.status(f"[bold green]Connecting to {equipment_id} via VISA...[/bold green]"):
         scope = connect_oscilloscope()
+
+
 
     if not scope:
         console.print(f"[bold red]Failed to connect to {equipment_id}.[/bold red] Check network and VISA drivers.")
