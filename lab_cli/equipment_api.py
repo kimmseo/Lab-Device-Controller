@@ -1,70 +1,97 @@
+# equipment_api.py
 import time
-import random
 from typing import Dict, Optional, Any
+from datetime import datetime
 
-# --- Mock Database ---
-# This dictionary simulates a persistent data source or the last known state
-# of the equipment. In a real application, this would be replaced by calls
-# to a database or direct queries to the equipment.
-EQUIPMENT_DATABASE = {
+# Import connection handlers
+# Ensure connections folder has an __init__.py or is in path
+from connections.laser import get_laser_details
+from connections.cryostat import get_cryostat_details
+# from connections.oscilloscope import get_scope_details
+
+# Configuration
+# Consider using config.json
+EQUIPMENT_CONFIG = {
     "laser-01": {
-        "type": "Laser_1",
-        "status": "Active",
-        "power_mw": 10.00,
-        "wavelength_nm": 1550.00,
-        "last_check": "2025-08-22 12:30:15",    # Datetime format
-        "operator": "Dr. Evelyn Reed",
+        "type": "Femtosecond Laser",
+        "ip": "192.168.0.39",
+        "driver": "toptica_dlc"
     },
+    "cryo-01": {
+        "type": "Montana Cryostation",
+        "ip": "192.168.0.178",
+        "driver": "montana"
+    },
+    # Keep your mock entries for offline testing if needed
+    "scope-01": {
+        "type": "Digital Oscilloscope",
+        "ip": "192.168.0.92", # Example
+        "driver": "mock"
+    }
 }
-
-# --- API Functions ---
 
 def get_all_equipment() -> Dict[str, Any]:
     """
-    Simulates fetching a summary of all equipment.
-
-    In a real implementation, this might involve:
-    - Querying a central management server.
-    - Iterating through a list of known IP addresses and pinging each device.
-    - Reading from a configuration file or database.
+    Iterates through configured equipment and fetches their live status.
     """
-    print("API: Fetching all equipment data...")
-    # Simulate a network delay
-    time.sleep(0.5)
+    results = {}
 
-    # Return mock database -> to be changed to actual data
-    return EQUIPMENT_DATABASE.copy()
+    print("API: Fetching live status from devices...")
 
+    for eq_id, config in EQUIPMENT_CONFIG.items():
+        driver = config.get("driver")
+        ip = config.get("ip")
+
+        # Default Basic Info
+        device_data = {
+            "id": eq_id,
+            "type": config["type"],
+            "status": "Unknown",
+            "last_check": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+
+        # Dispatch to specific connection handler
+        if driver == "toptica_dlc":
+            details = get_laser_details(ip)
+            device_data.update(details)
+
+        elif driver == "montana":
+            details = get_cryostat_details(ip)
+            device_data.update(details)
+
+        elif driver == "mock":
+            # Simulate generic device
+            device_data["status"] = "Idle"
+            device_data["details"] = "Mock Device"
+
+        results[eq_id] = device_data
+
+    return results
 
 def get_equipment_by_id(equipment_id: str) -> Optional[Dict[str, Any]]:
     """
-    Simulates fetching detailed data for a single piece of equipment.
-
-    In a real implementation, this would be the place to put device-specific
-    communication logic, for example:
-    - Sending a SCPI command over a VISA connection.
-    - Making an HTTP GET request to the device's REST API.
-    - Communicating over a serial (RS-232) port.
+    Fetches details for a single device.
     """
-    print(f"API: Querying details for {equipment_id}...")
-    # Simulate a device-specific delay
-    time.sleep(0.5)
-
-    device_data = EQUIPMENT_DATABASE.get(equipment_id.lower())
-
-    if not device_data:
+    config = EQUIPMENT_CONFIG.get(equipment_id)
+    if not config:
         return None
 
-    # Simulate dynamic data by slightly randomizing some values if the device is active
-    if device_data.get("status") == "Active":
-        if "power_mw" in device_data:
-            # Fluctuate power by +/- 2%
-            fluctuation = device_data["power_mw"] * random.uniform(-0.02, 0.02)
-            device_data["power_mw"] = round(device_data["power_mw"] + fluctuation, 2)
-        if "current_a" in device_data:
-            # Fluctuate current by +/- 1%
-            fluctuation = device_data["current_a"] * random.uniform(-0.01, 0.01)
-            device_data["current_a"] = round(device_data["current_a"] + fluctuation, 3)
+    # Re-use logic from get_all or call specific
+    # Just do single fetch for efficiency
+    driver = config.get("driver")
+    ip = config.get("ip")
 
-    return device_data.copy()
+    device_data = {
+        "id": equipment_id,
+        "type": config["type"],
+        "last_check": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
 
+    if driver == "toptica_dlc":
+        device_data.update(get_laser_details(ip))
+    elif driver == "montana":
+        device_data.update(get_cryostat_details(ip))
+    else:
+        device_data["status"] = "Idle (Mock)"
+
+    return device_data

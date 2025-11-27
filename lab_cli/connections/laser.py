@@ -1,95 +1,47 @@
-# Import libraries
-import pyvisa
-import platform
-import datetime
-import time
-import socket
+# toptica laser
+import sys
+try:
+    from toptica.lasersdk.dlcpro.v2_0_3 import DLCpro, NetworkConnection, DeviceNotFoundError
+except ImportError:
+    DLCpro = None
+    print("Warning: 'toptica-lasersdk' not installed. Laser connection will be simulated.")
 
-'''
-Laser connection
-Last changed: 16th Oct 2025
-Changes: Created file
-'''
+def get_laser_details(ip: str) -> dict:
+    """
+    Connects to Toptica DLC Pro and fetches live data.
+    """
+    if DLCpro is None:
+        return {"status": "Error", "details": "SDK Missing"}
 
-def find_visa_library():
-    if platform.system() == "Windows":
-        return None
-    else:
-        return None
-
-def connect_laser():
-    '''
-    Connect to laser
-    '''
-    scope = None
     try:
-        rm_laser = pyvisa.ResourceManager()
-        scope = rm_laser.open_resource("TCPIP0::192.168.0.92::inst0::INSTR")
-        scope.write_termination = '\n'
-        scope.read_termination = '\n'
-        scope.timeout = 15000
-        scope.clear()
-        return scope
-    except pyvisa.errors.VisaIOError as e:
-        print(f"VISA connection failed: {e}")
-        print("Please ensure the oscilloscope is connected and the VISA drivers are installed.")
-        if scope:
+        with DLCpro(NetworkConnection(ip)) as dlc:
+            # Fetch basic health
+            health = dlc.system_health_txt.get()
+
+            # Fetch emission state
+            emission = dlc.laser1.emission.get()
+
+            # Fetch current Wavelength (act) and Power (act)
+            # Parameter names depend on specific laser head, these are standard for CTL/DL
+            wavelength = dlc.laser1.ctl.wavelength.act.get()
+
+            # Check for power stabilization input or direct output
+            # Using input_channel_value_act
             try:
-                scope.close()
-            except Exception as close_e:
-                print(f"Error closing scope resource: {close_e}")
-        return None
+                power = dlc.laser1.power_stabilization.input_channel_value_act.get()
+            except:
+                # Fallback if stabilization not active/avail
+                power = 0.0
 
-def connect_laser_via_server():
+            return {
+                "status": "Active" if health == "OK" else "Warning",
+                "emission_active": bool(emission),
+                "wavelength_nm": float(wavelength),
+                "power_mw": float(power),
+                "details": f"Health: {health}"
+            }
 
-    class LaserProxy:
-        '''
-        self.sock.recv will receive stuff from the server
-        self.sock.sendall will send stuff to the server
-        Use only write and query functions
-        '''
-        def __init__(self, host = "localhost", port = 9999):
-            self.host = host
-            self.port = port    # Connects to 9999 port by default
-
-        def write(self, command):
-            # General purpose command, most commonly used
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.connect((self.host, self.port))
-                s.sendall(command.encode())
-
-        def query(self, command):
-            if not command.endswith("?"):
-                raise NameError("Queries m ust end with ?")
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.connect((self.host, self.port))
-                s.sendall(command.encode())
-                # Data from laser is at most 1024 bytes long
-                # Adjust as needed if other laser models use different values
-                return s.recv(1024).decode().strip()
-
-        def read(self, command):
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.connect((self.host, self.port))
-                s.sendall(f"_r_{command}".encode())
-                return s.recv(1024).decode().strip()
-
-        def close(self):
-            pass
-
-    return LaserProxy()
-
-if __name__ == "__main__":
-    print("Connecting to laser server via proxy...")
-    laser = connect_laser_via_server()
-
-    if laser:
-        try:
-            idn_response = laser.query("*IDN?").strip()
-            print("Laser proxy client ready, Laser ID: ", idn_response)
-            laser.close()
-        except pyvisa.errors.VisaIOError as e:
-            print(f"Failed to query laser ID: {e}")
-            laser.close()
-    else:
-        print("Failed to connec to laser.")
+    except DeviceNotFoundError:
+        return {"status": "Offline", "details": "Device not found"}
+    except Exception as e:
+        return {"status": "Connection Error", "details": str(e)}
