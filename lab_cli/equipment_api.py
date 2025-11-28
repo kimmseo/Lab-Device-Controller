@@ -1,16 +1,14 @@
-# equipment_api.py
+# lab_cli/equipment_api.py
 import time
 from typing import Dict, Optional, Any
 from datetime import datetime
 
-# Import connection handlers
-# Ensure connections folder has an __init__.py or is in path
-from connections.laser import get_laser_details
-from connections.cryostat import get_cryostat_details
-# from connections.oscilloscope import get_scope_details
+# --- FIX: Use relative imports (add the dot .) ---
+from .connections.laser import get_laser_details
+from .connections.cryostat import get_cryostat_details
+# from .connections.oscilloscope import get_scope_details
 
-# Configuration
-# Consider using config.json
+# --- Configuration ---
 EQUIPMENT_CONFIG = {
     "laser-01": {
         "type": "Femtosecond Laser",
@@ -22,10 +20,9 @@ EQUIPMENT_CONFIG = {
         "ip": "192.168.0.178",
         "driver": "montana"
     },
-    # Keep your mock entries for offline testing if needed
     "scope-01": {
         "type": "Digital Oscilloscope",
-        "ip": "192.168.0.92", # Example
+        "ip": "192.168.0.92",
         "driver": "mock"
     }
 }
@@ -36,7 +33,8 @@ def get_all_equipment() -> Dict[str, Any]:
     """
     results = {}
 
-    print("API: Fetching live status from devices...")
+    # Optional: Print less frequently to avoid cluttering the CLI
+    # print("API: Fetching live status from devices...")
 
     for eq_id, config in EQUIPMENT_CONFIG.items():
         driver = config.get("driver")
@@ -76,8 +74,6 @@ def get_equipment_by_id(equipment_id: str) -> Optional[Dict[str, Any]]:
     if not config:
         return None
 
-    # Re-use logic from get_all or call specific
-    # Just do single fetch for efficiency
     driver = config.get("driver")
     ip = config.get("ip")
 
