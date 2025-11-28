@@ -1,9 +1,8 @@
-# lab_cli/equipment_api.py
 import time
 from typing import Dict, Optional, Any
 from datetime import datetime
 
-# --- FIX: Use relative imports (add the dot .) ---
+# Import connection handlers
 from .connections.laser import get_laser_details
 from .connections.cryostat import get_cryostat_details
 # from .connections.oscilloscope import get_scope_details
@@ -11,8 +10,8 @@ from .connections.cryostat import get_cryostat_details
 # --- Configuration ---
 EQUIPMENT_CONFIG = {
     "laser-01": {
-        "type": "Femtosecond Laser",
-        "ip": "192.168.0.39",
+        "type": "Toptica Laser",       # <--- Renamed from "Femtosecond Laser"
+        "ip": "192.168.0.39",          # <--- FIXED: Correct IP from your working script
         "driver": "toptica_dlc"
     },
     "cryo-01": {
@@ -28,13 +27,8 @@ EQUIPMENT_CONFIG = {
 }
 
 def get_all_equipment() -> Dict[str, Any]:
-    """
-    Iterates through configured equipment and fetches their live status.
-    """
+    """Fetches live status from all configured devices."""
     results = {}
-
-    # Optional: Print less frequently to avoid cluttering the CLI
-    # print("API: Fetching live status from devices...")
 
     for eq_id, config in EQUIPMENT_CONFIG.items():
         driver = config.get("driver")
@@ -58,7 +52,6 @@ def get_all_equipment() -> Dict[str, Any]:
             device_data.update(details)
 
         elif driver == "mock":
-            # Simulate generic device
             device_data["status"] = "Idle"
             device_data["details"] = "Mock Device"
 
@@ -67,9 +60,7 @@ def get_all_equipment() -> Dict[str, Any]:
     return results
 
 def get_equipment_by_id(equipment_id: str) -> Optional[Dict[str, Any]]:
-    """
-    Fetches details for a single device.
-    """
+    """Fetches details for a single device."""
     config = EQUIPMENT_CONFIG.get(equipment_id)
     if not config:
         return None
