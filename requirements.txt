@@ -1,2 +1,9 @@
-typer[all]
-PyVISA
+requests
+typer
+rich
+pyvisa
+toptica-lasersdk
+pandas
+numpy
+matplotlib
+scipy

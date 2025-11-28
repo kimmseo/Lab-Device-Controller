@@ -100,7 +100,7 @@ def inspect_device(device_id: str):
         console.print(f"[cyan]{key}:[/cyan] {value}")
 
 
-@app.command("interactive")
+@app.command("shell")
 def interactive_shell():
     """
     Starts an interactive shell session.
