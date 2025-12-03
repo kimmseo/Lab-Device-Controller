@@ -18,23 +18,38 @@ def get_laser_details(ip: str) -> dict:
         # Connect to the laser
         with DLCpro(NetworkConnection(ip)) as dlc:
             # 1. Get Health Status
-            health_txt = dlc.system_health_txt.get()
-
-            # Robust check: 'OK' might have spaces or case differences
-            is_healthy = health_txt.strip().upper() == "OK"
+            # .strip() removes whitespace, .upper() ensures "ok" matches "OK"
+            health_txt = dlc.system_health_txt.get().strip()
+            is_healthy = health_txt.upper() == "OK"
 
             # 2. Get Emission State
             emission = dlc.laser1.emission.get()
 
-            # 3. Get Wavelength and Power
-            # Note: Using .act (actual value)
-            # TODO: Error on this line, CtlT has no attribute wavelength
-            wavelength = dlc.laser1.ctl.wavelength.act.get()
-
-            # Try getting power from stabilization input (common setup)
+            # 3. Get Wavelength (FIXED)
+            # Your debug output showed 'wavelength_act' is directly under 'ctl'
             try:
-                power = dlc.laser1.power_stabilization.input_channel_value_act.get()
-            except:
+                if hasattr(dlc.laser1, 'ctl'):
+                    wavelength = dlc.laser1.ctl.wavelength_act.get()
+                elif hasattr(dlc.laser1, 'wide_scan'):
+                    # Fallback for other models if CTL isn't present
+                    wavelength = dlc.laser1.wide_scan.scan_begin.get()
+                else:
+                    wavelength = 0.0
+            except Exception:
+                wavelength = 0.0
+
+            # 4. Get Power
+            # We try the stabilization input first (most accurate for experiments)
+            # If that fails, we check the 'power' attribute under ctl
+            power = 0.0
+            try:
+                # Primary Method: Power Stabilization Input
+                if hasattr(dlc.laser1, 'power_stabilization'):
+                    power = dlc.laser1.power_stabilization.input_channel_value_act.get()
+                # Secondary Method: CTL Power Reading
+                elif hasattr(dlc.laser1, 'ctl') and hasattr(dlc.laser1.ctl, 'power'):
+                     power = dlc.laser1.ctl.power.get()
+            except Exception:
                 power = 0.0
 
             return {
@@ -51,7 +66,6 @@ def get_laser_details(ip: str) -> dict:
             "details": "Device not found at IP"
         }
     except Exception as e:
-        # Return the specific error to help debugging
         return {
             "status": "Connection Error",
             "details": str(e)
