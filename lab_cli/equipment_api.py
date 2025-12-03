@@ -10,8 +10,8 @@ from .connections.cryostat import get_cryostat_details
 # --- Configuration ---
 EQUIPMENT_CONFIG = {
     "laser-01": {
-        "type": "Toptica Laser",       # <--- Renamed from "Femtosecond Laser"
-        "ip": "192.168.0.39",          # <--- FIXED: Correct IP from your working script
+        "type": "Toptica Laser",
+        "ip": "192.168.0.39",
         "driver": "toptica_dlc"
     },
     "cryo-01": {

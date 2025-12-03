@@ -6,9 +6,7 @@ from rich.prompt import Prompt
 from rich.live import Live
 import shlex
 
-# --- FIX: Updated Imports ---
-# We no longer import individual connection functions (like connect_laser_via_server).
-# Instead, we import the centralized API functions.
+# Import from centralised API commands
 from .equipment_api import get_all_equipment, get_equipment_by_id
 
 app = typer.Typer(
