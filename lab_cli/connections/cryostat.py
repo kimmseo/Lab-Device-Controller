@@ -39,7 +39,7 @@ try:
     import scryostation
 except ImportError:
     scryostation = None
-    print(f"Warning: Could not import scryostation from {MONTANA_LIB_PATH}")
+    print(f"Warning: Could not import scryostation from {libs_path}")
 
 def get_cryostat_details(ip: str) -> dict:
     if not scryostation:
