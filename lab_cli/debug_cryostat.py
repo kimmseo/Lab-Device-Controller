@@ -8,6 +8,8 @@ from pathlib import Path
 console = Console()
 
 
+CRY_IP = "192.168.0.62"
+
 # Configuration
 # Import Montana Python libraries (scryostation.py)
 current_dir = Path(__file__).resolve().parent
@@ -36,12 +38,12 @@ _cryo_session = requests.Session()
 requests.get = lambda url, **kwargs: _cryo_session.get(url, **kwargs)
 
 # Import library
-if LIB_PATH not in sys.path:
-    sys.path.append(LIB_PATH)
+if libs_path not in sys.path:
+    sys.path.append(libs_path)
 
 try:
     import scryostation
-    console.print(f"[green]Library loaded from {LIB_PATH}[/green]")
+    console.print(f"[green]Library loaded from {libs_path}[/green]")
 
     try:
         cryo = scryostation.SCryostation(CRY_IP)
