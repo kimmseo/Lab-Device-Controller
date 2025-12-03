@@ -101,7 +101,7 @@ Displays a summary table of all configured equipment and their current status.
     ┌────────────┬────────────────────────┬────────┬─────────────────────┐
     │ ID         │ Type                   │ Status │ Last Checked        │
     ├────────────┼────────────────────────┼────────┼─────────────────────┤
-    │ laser-01   │ Femtosecond Laser      │ Active │ 2025-10-10 16:30:00 │
+    │ laser-01   │ Toptica Laser          │ Active │ 2025-10-10 16:30:00 │
     │ scope-01   │ Digital Oscilloscope   │ Idle   │ N/A                 │
     └────────────┴────────────────────────┴────────┴─────────────────────┘
 
@@ -174,3 +174,73 @@ Arms the oscilloscope to wait for a single external trigger. Once the trigger is
     ├── pyproject.toml           # Package configuration
     ├── README.md                # This file
     └── requirement.txt          # Python dependencies
+
+
+### For debugging:
+
+    Attributes of 'dlc.laser1':
+    [
+        'amp',
+        'config',
+        'ctl',
+        'diagnosis',
+        'dl',
+        'dpss',
+        'emission',
+        'health',
+        'health_txt',
+        'load',
+        'load_head',
+        'nlo',
+        'pd_ext',
+        'power_stabilization',
+        'product_name',
+        'recorder',
+        'save',
+        'scan',
+        'scope',
+        'type',
+        'uv',
+        'wide_scan'
+    ]
+
+    Attributes of 'dlc.laser1.ctl':
+    ['factory_settings', 'fpga_fw_ver', 'head_temperature', 'mode_control', 'motor', 'optimization', 'power', 'remote_control', 'state', 'state_txt', 'tuning_current_min', 'tuning_power_min', 'wavelength_act', 'wavelength_max', 'wavelength_min', 'wavelength_set']
+
+    Attributes of 'dlc.laser1.dl':
+    ['cc', 'factory_settings', 'fru_serial_number', 'legacy', 'lock', 'model', 'ontime', 'ontime_txt', 'pc', 'pd', 'pressure_compensation', 'restore', 'serial_number', 'store', 'tc', 'type', 'version']
+
+    Available Methods (Temp/Magnet):
+    [
+        'get_cryooptic_temperature',
+        'get_cryooptic_temperature_sample',
+        'get_cryooptic_temperature_stability',
+        'get_cryooptic_temperature_stable',
+        'get_platform_target_temperature',
+        'get_platform_temperature',
+        'get_platform_temperature_sample',
+        'get_platform_temperature_stability',
+        'get_platform_temperature_stable',
+        'get_stage1_temperature',
+        'get_stage1_temperature_sample',
+        'get_stage2_temperature',
+        'get_stage2_temperature_sample',
+        'get_user1_target_temperature',
+        'get_user1_temperature',
+        'get_user1_temperature_sample',
+        'get_user1_temperature_stability',
+        'get_user1_temperature_stable',
+        'get_user2_target_temperature',
+        'get_user2_temperature',
+        'get_user2_temperature_sample',
+        'get_user2_temperature_stability',
+        'get_user2_temperature_stable',
+        'set_cryooptic_target_temperature',
+        'set_cryooptic_temperature_controller_enabled',
+        'set_platform_bakeout_temperature',
+        'set_platform_target_temperature',
+        'set_user1_target_temperature',
+        'set_user1_temperature_controller_enabled',
+        'set_user2_target_temperature',
+        'set_user2_temperature_controller_enabled'
+    ]
