@@ -26,7 +26,7 @@ def get_laser_details(ip: str) -> dict:
             emission = dlc.laser1.emission.get()
 
             # 3. Get Wavelength (FIXED)
-            # Your debug output showed 'wavelength_act' is directly under 'ctl'
+            # Debug output showed 'wavelength_act' is directly under 'ctl'
             try:
                 if hasattr(dlc.laser1, 'ctl'):
                     wavelength = dlc.laser1.ctl.wavelength_act.get()
