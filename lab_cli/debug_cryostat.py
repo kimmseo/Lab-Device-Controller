@@ -12,7 +12,7 @@ CRY_IP = "192.168.0.62"
 
 # Configuration
 # Import Montana Python libraries (scryostation.py)
-current_dir = Path(__file__).resolve().parent
+current_dir = Path(__file__).resolve()
 libs_path = current_dir.parent / "read_only" / "Python Montana examples" / "libs"
 
 # Check if the path exists before adding it (good for debugging)
