@@ -35,12 +35,6 @@ def persistent_get(url, params=None, **kwargs):
 
 requests.get = persistent_get
 
-try:
-    import scryostation
-except ImportError:
-    scryostation = None
-    print(f"Warning: Could not import scryostation from {libs_path}")
-
 def get_cryostat_details(ip: str) -> dict:
     if not scryostation:
         return {"status": "Error", "details": "Library Import Failed"}
