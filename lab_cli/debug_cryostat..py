@@ -2,13 +2,32 @@ import sys
 import requests
 import json
 from rich.console import Console
+from pathlib import Path
+
 
 console = Console()
 
 
-# --- 2. CRYOSTAT DEBUG ---
-CRY_IP = "192.168.0.178"
-LIB_PATH = r"C:\Users\qmqin\VSCode-v2\read_only\Python Montana examples\libs"
+# Configuration
+# Import Montana Python libraries (scryostation.py)
+current_dir = Path(__file__).resolve().parent
+libs_path = current_dir.parent / "read_only" / "Python Montana examples" / "libs"
+
+# Check if the path exists before adding it (good for debugging)
+if not libs_path.exists():
+    print(f"Warning: Could not find Montana libs at: {libs_path}")
+else:
+    # Convert to string and add to system path if not already there
+    libs_path_str = str(libs_path)
+    if libs_path_str not in sys.path:
+        sys.path.append(libs_path_str)
+
+# Import scryostation here
+try:
+    import scryostation
+except ImportError as e:
+    scryostation = None
+    print(f"Error: Failed to import scryostation from {libs_path}. Details: {e}")
 
 console.print(f"\n[bold blue]--- Inspecting Cryostat at {CRY_IP} ---[/bold blue]")
 
