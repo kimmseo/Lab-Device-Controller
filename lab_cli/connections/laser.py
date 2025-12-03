@@ -28,6 +28,7 @@ def get_laser_details(ip: str) -> dict:
 
             # 3. Get Wavelength and Power
             # Note: Using .act (actual value)
+            # TODO: Error on this line, CtlT has no attribute wavelength
             wavelength = dlc.laser1.ctl.wavelength.act.get()
 
             # Try getting power from stabilization input (common setup)
