@@ -210,4 +210,10 @@ __marimo__/
 
 .vscode
 
-Data_Sweeps
+# User-specific configuration and experiments
+user_experiments.json
+Data_Sweeps/
+Data_Manual_Sweeps/
+Data_Absorption_Sweep/
+*.xlsx
+*.png
