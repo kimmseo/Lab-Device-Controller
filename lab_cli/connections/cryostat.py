@@ -4,66 +4,140 @@ import json
 import time
 from pathlib import Path
 
-# Configuration
-# Import Montana Python libraries (scryostation.py)
+# Dynamic Path Setup
 current_dir = Path(__file__).resolve().parent
 libs_path = current_dir.parent / "read_only" / "Python Montana examples" / "libs"
 
-# Check if the path exists before adding it (good for debugging)
 if not libs_path.exists():
-    print(f"Warning: Could not find Montana libs at: {libs_path}")
-else:
-    # Convert to string and add to system path if not already there
+    # Fallback for local testing if folder structure differs
+    libs_path = Path(r"C:\Users\qmqin\VSCode-v2\read_only\Python Montana examples\libs")
+
+if libs_path.exists():
     libs_path_str = str(libs_path)
     if libs_path_str not in sys.path:
         sys.path.append(libs_path_str)
 
-# Import scryostation here
+# Import Library
 try:
     import scryostation
-except ImportError as e:
+except ImportError:
     scryostation = None
-    print(f"Error: Failed to import scryostation from {libs_path}. Details: {e}")
 
-# Patching Requests
-# Montana library creates a new session for every call, which can overwhelm the server
-# We patch requests.get to use a persistent session, as per your working script.
+# Patch Requests
 _cryo_session = requests.Session()
-
 def persistent_get(url, params=None, **kwargs):
     return _cryo_session.get(url=url, params=params, **kwargs)
-
 requests.get = persistent_get
 
+# Helper: Direct REST Fallback
+def _send_rest_put(ip: str, endpoint: str, data_payload):
+    """Sends a PUT request with correct JSON headers (Fix for Error 400)."""
+    url = f"http://{ip}:47101/v1/{endpoint}"
+    headers = {'Content-Type': 'application/json'}
+    try:
+        resp = requests.put(url, data=json.dumps(data_payload), headers=headers, timeout=5)
+        if resp.status_code in [200, 204]:
+            return True, "Success"
+        else:
+            return False, f"Server Error {resp.status_code}: {resp.text}"
+    except Exception as e:
+        return False, str(e)
+
 def get_cryostat_details(ip: str) -> dict:
+    """Fetches current status (Temp, Pressure, Magnet)."""
     if not scryostation:
         return {"status": "Error", "details": "Library Import Failed"}
 
     try:
-        # Connect
         cryo = scryostation.SCryostation(ip)
 
-        # Fetch Data (with safety checks)
+        # Temp & Pressure
         temp = cryo.get_temperature() if hasattr(cryo, 'get_temperature') else 0.0
         pressure = cryo.get_pressure() if hasattr(cryo, 'get_pressure') else 0.0
 
-        # Magnet info
+        # Magnet
         field = 0.0
+        # Try different naming conventions for Magneto-Optic vs Standard
         if hasattr(cryo, 'get_magnet_target_field'):
             field = cryo.get_magnet_target_field()
         elif hasattr(cryo, 'getMagnetTargetField'):
              field = cryo.getMagnetTargetField()
+        elif hasattr(cryo, 'get_mo_target_field'): # Specific to Magneto-Optic
+             field = cryo.get_mo_target_field()
 
         return {
             "status": "Active",
             "temperature_k": float(temp),
             "pressure_torr": float(pressure),
             "magnet_field_tesla": float(field),
-            "details": "Connected via Lib"
+            "details": "Connected"
         }
+    except Exception as e:
+        return {"status": "Connection Error", "details": str(e)}
+
+def set_temperature(ip: str, target_k: float) -> str:
+    """Sets the platform target temperature[cite: 588]."""
+    if not scryostation: return "Library missing"
+
+    try:
+        cryo = scryostation.SCryostation(ip)
+        # Try Library Method
+        if hasattr(cryo, 'set_platform_target_temperature'):
+            cryo.set_platform_target_temperature(target_k)
+            return f"Command sent: Set Temp to {target_k} K"
+        elif hasattr(cryo, 'setRenderTargetTemperature'):
+            cryo.setRenderTargetTemperature(target_k)
+            return f"Command sent: Set Temp to {target_k} K"
+
+        # Fallback to REST
+        success, msg = _send_rest_put(ip, "controller/properties/platformTargetTemperature", target_k)
+        return msg if not success else f"REST Command: Set Temp to {target_k} K"
 
     except Exception as e:
-        return {
-            "status": "Connection Error",
-            "details": str(e)
-        }
+        return f"Error setting temp: {e}"
+
+def set_magnet_field(ip: str, target_tesla: float) -> str:
+    """Sets the magnetic field[cite: 520]. Auto-enables magnet if needed."""
+    if not scryostation: return "Library missing"
+
+    # Safety Check: The PDF mentions limits like +/- 2T or 0.7T depending on model
+    # Can add a software limit here
+
+    try:
+        cryo = scryostation.SCryostation(ip)
+
+        # Ensure Magnet is Enabled
+        # Try library methods to enable
+        try:
+            if hasattr(cryo, 'set_magnet_state'): cryo.set_magnet_state(True)
+            elif hasattr(cryo, 'setMagnetState'): cryo.setMagnetState(True)
+        except:
+            pass # Continue to try setting field anyway
+
+        # Set Field
+        # Try Library Method (Standard)
+        if hasattr(cryo, 'set_magnet_target_field'):
+            cryo.set_magnet_target_field(target_tesla)
+            return f"Command sent: Field {target_tesla} T"
+
+        # Try Library Method (CamelCase)
+        elif hasattr(cryo, 'setMagnetTargetField'):
+            cryo.setMagnetTargetField(target_tesla)
+            return f"Command sent: Field {target_tesla} T"
+
+        # Try Library Method (Magneto-Optic module specific)
+        elif hasattr(cryo, 'set_mo_target_field'):
+            cryo.set_mo_target_field(target_tesla)
+            return f"Command sent: MO Field {target_tesla} T"
+
+        # Fallback to REST
+        success, msg = _send_rest_put(ip, "magnet/targetField", target_tesla)
+        if success:
+            # Also ensure enabled via REST
+            _send_rest_put(ip, "magnet/state", "ENABLED")
+            return f"REST Command: Field {target_tesla} T"
+        else:
+            return f"Failed to set field via Library or REST. {msg}"
+
+    except Exception as e:
+        return f"Error setting field: {e}"
