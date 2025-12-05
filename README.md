@@ -1,246 +1,210 @@
 # Lab-Device-Controller CLI
 
-A command-line interface (CLI) for monitoring, controlling and acquiring data from laboratory equipment. This tool provides a simple and efficient way to interact with hardware like oscilloscopes and lasers directly from the terminal.
+A versatile, future-proof command-line interface (CLI) for automating laboratory equipment, running complex experiments, and monitoring hardware status.
 
-It features an interactive shell, allowing the user to run multiple commands in a single session without relaunching the application.
+This tool has evolved from a simple status monitor into a **modular automation framework**. It allows researchers to define experiment "recipes" interactively, loop over variables (like magnetic field or temperature), and acquire data without writing new Python code for every measurement.
 
-## Features
-- **Status Monitoring**: Get a quick overview of all connected lab equipment or a detailed status for a specific device.
-- **Direct Hardware Connection**: Establish a live connection with devices to verify their identity and operational state.
-- **Oscilloscope Control**:
-    - **Screen Capture**: Save the current display of a Keysight oscilloscope as a PNG image to your PC.
-    - **Triggered Acquisition**: Arm the oscilloscope to wait for an external trigger signal (e.g., from a pulse streamer) and automatically save the resulting screen capture.
-- **Interactive Shell**: Run multiple commands in a persistent session for a smoother workflow.
+## Supported Hardware
 
-## Prerequisites
+* **Toptica DLC Pro Lasers**: Full control via Toptica SDK (Emission, Power, Wide Scans).
+* **Montana Instruments Cryostation**: Control via REST API/Library (Temperature, Magnetic Field, Pressure).
+* **Keysight Oscilloscopes**: Screen capture and triggering via VISA.
+* **Generic/Mock Devices**: Extensible support for any device driver.
 
-Before installing, please ensure you have the following software installed and configured:
+## Key Features
 
-1. **Python**: Version 3.8 or higher
-2. **NI-VISA Drivers**: This application communicates with hardware using the VISA protocol. You must install a VISA backend on your system. For most Windows systems, the [NI-VISA Driver](https://www.ni.com/en/support/downloads/drivers/download.ni-visa.html) is required.
-3. **Hardware Connection**: Ensure your lab equipment (e.g., Keysight DSOX1204G/DSOX2024A) is connected to the same network as your PC.
+### 1. Modular Action Registry
 
-## Installation
+The core of the system is the **Action Registry**. Instead of hardcoding experiments, the CLI exposes atomic actions (e.g., `set-temp`, `sweep-laser`, `delay`).
 
-Follow these steps to install and set up the Lab Device Controller CLI.
+* **Future-Proof:** Adding a new instrument is as simple as dropping a new python file into the `actions/` folder. The CLI automatically detects and registers the new commands.
 
-1. **Clone the Repository**
+### 2. "No-Code" Experiment Builder
 
-        git clone https://github.com/kimmseo/Lab-Device-Controller.git
-        cd Lab-Device-Controller
+* **Define:** Create custom experiment workflows interactively in the terminal.
+* **Loop:** Execute these workflows while sweeping a variable (e.g., "Loop `my_scan` while varying `field` from 0T to 1T").
+* **Save:** Recipes are saved to `user_experiments.json` and can be reused instantly.
 
-2. **(Recommended) Create a Virtual Environment**
+### 3. Automated Data Acquisition
 
-        python -m venv .venv
-        # On Windows
-        .\.venv\Scripts\activate
-        # On macOS/Linux
-        source .venv/bin/activate
+* Laser sweeps are automatically saved as **Excel (.xlsx)** files for analysis and **PNG** images for quick reference.
+* Folders are organized by experiment type and timestamp.
 
-3. **Install Dependencies**
+## Installation & Setup
 
-    Install all the required Python packages from the requirements.txt file.
+### 1. Prerequisites
 
-        pip install -r requirements.txt
+Ensure you have Python 3.8+ installed. You also need the NI-VISA drivers installed if using Oscilloscopes via USB/TCP.
 
-4. **Install the CLI Tool**
+### 2. Install Dependencies
 
-    Install the application in "editable" mode. This creates the `lab-cli` command in your terminal and ensures that any changes you make to the source code are immediately available.
+Install the required Python packages:
 
-        pip install -e .
+```bash
+pip install typer rich requests pyvisa toptica-lasersdk pandas numpy matplotlib scipy sshtunnel openpyxl
+```
 
-## Configuration
+### 3. Folder Structure
 
-Before using the tool, you must configure it to recognise your specific lab equipment.
+Ensure your project folder is organized as follows:
 
-1. Open the main configuration file: `lab_cli/main.py`.
-2. Locate the `MOCK_EQUIPMENT_DATA` Python dictionary near the top of the file.
-3. Modify the dictionary to match your equipment. Pay close attention to the `visa_address`. You can find this address using vendor-supplied software like Keysight Connection Expert.
+```text
+lab_cli/
+├── main.py                 # Entry point
+├── equipment_api.py        # Configuration (IP addresses)
+├── experiment_registry.py  # JSON storage for user recipes
+├── actions/                # <<< Place new action scripts here
+│   ├── __init__.py
+│   ├── cryo_actions.py
+│   ├── laser_actions.py
+│   └── general_actions.py
+└── connections/            # Hardware drivers
+    ├── laser.py
+    ├── cryostat.py
+    └── scryostation.py     # (Copy this from Montana Examples/libs)
+```
 
-**Example Configuration:**
+### 4. Configuration
 
-    # In lab_cli/main.py
-    MOCK_EQUIPMENT_DATA = {
-        "laser-01" : {
-            "type" : "Femtosecond Laser",
-            # ... other details
-        }
-        "scope-01" : {
-            "type" : "Digital Oscilloscope",
-            "status" : "Idle",
-            # Find this address using Keysight Connection Expert
-            "visa_address" :"TCPIP0::192.168.1.10::inst0::INSTR",
-            "details" : "Keysight DSOX1204G"
-        }
+Edit `lab_cli/equipment_api.py` to set the IP addresses for your specific lab setup:
+
+```python
+EQUIPMENT_CONFIG = {
+    "laser-01": {
+        "type": "Toptica Laser",
+        "ip": "192.168.0.39",
+        "driver": "toptica_dlc"
+    },
+    "cryo-01": {
+        "type": "Montana Cryostation",
+        "ip": "192.168.0.178",
+        "driver": "montana"
     }
+}
+```
 
+## Usage Guide
 
-## Usage
+You can run the CLI in **Interactive Mode** (recommended) or as single commands.
 
-The primary way to use the application is through its interactive shell.
+### 1. Interactive Shell
 
-### Starting the Shell
+Start the persistent shell session:
 
-To begin, run the following command in your terminal:
+```bash
+python -m lab_cli.main interactive
+```
 
-    lab-cli shell
+You will see the prompt: `lab-cli >`
 
-You will be gretted with the `lab-cli >` prompt. From here, you can run all the commands listed below. To exit the shell, type `exit` or `quit`.
+### 2. Monitoring Status
 
-### Command Reference
+Check the live health, temperature, and field of all connected devices:
 
-`list`
+```bash
+status
+```
 
-Displays a summary table of all configured equipment and their current status.
+To see detailed properties of a specific device:
 
-**Example:**
+```bash
+inspect laser-01
+inspect cryo-01
+```
 
-    lab-cli > list
+### 3. Running Instant Actions
 
-    Lab Equipment Status Overview
-    ┌────────────┬────────────────────────┬────────┬─────────────────────┐
-    │ ID         │ Type                   │ Status │ Last Checked        │
-    ├────────────┼────────────────────────┼────────┼─────────────────────┤
-    │ laser-01   │ Toptica Laser          │ Active │ 2025-10-10 16:30:00 │
-    │ scope-01   │ Digital Oscilloscope   │ Idle   │ N/A                 │
-    └────────────┴────────────────────────┴────────┴─────────────────────┘
+You can execute any registered action immediately. Arguments are passed as `key=value`.
 
-`status <EQUIPMENT_ID>`
+**Set Temperature:**
 
-Fetches and displays detailed information for a single piece of equipment.
+```bash
+run set-temp target=295
+```
 
-**Example:**
+**Set Magnetic Field:**
 
-    lab-cli > status scope-01
+```bash
+run set-field target=0.5
+```
 
-    Querying status for: scope-01
-    ┌──────────┬────────────────────────────┐
-    │ ID:      │ scope-01                   │
-    │ Type:    │ Digital Oscilloscope       │
-    │ Status:  │ Idle                       │
-    │----------│----------------------------│
-    │ Details: │ Keysight DSOX1204G         │
-    │----------│----------------------------│
-    │ Operator:│ N/A                        │
-    │ Last...  │ N/A                        │
-    └──────────┴────────────────────────────┘
+**Run a Laser Sweep:**
 
-`capture <EQUIPMENT_ID>`
+```bash
+run sweep-laser start_nm=1530 end_nm=1535 speed=5 power=0.7
+```
 
-Connects to the specified oscilloscope and saves a PNG image of its current screen display.
+### 4. Defining & Looping Experiments (The Automation Workflow)
 
-**Options:**
-- `-p`, `--save-path <PATH>`: Specify a directory to save the image in. Defaults to the current directory.
+**Step A: Define a Recipe**
+Use the `define` command. You can use `{variable}` syntax to create placeholders.
 
-**Example:**
+```bash
+define my_magnet_sweep
+```
 
-    lab-cli > capture scope-01 -p "C:\Data\Screenshots"
+  * *Select Action:* `set-field` → Value: `{field}`
+  * *Select Action:* `delay` → Value: `10`
+  * *Select Action:* `sweep-laser` → Values: `1530`, `1535`, `5`, `0.7`
+  * *Select Action:* `finish`
 
-    Starting screen capture for scope-01...
-    Requesting screen data from oscilloscope...
-    Screen captured successfully and saved to: C:\Data\Screenshots\keysight_capture_2025-10-10_16-45-30.png
-    Connection closed.
+**Step B: Run the Loop**
+Now, run that recipe while sweeping the `{field}` variable from 0 to 0.5 Tesla.
 
-`arm <EQUIPMENT_ID>`
+```bash
+run-loop my_magnet_sweep --variable field --start 0 --end 0.5 --step 0.1
+```
 
-Arms the oscilloscope to wait for a single external trigger. Once the trigger is received, it automatically captures the screen and saves it as a PNG.
+The system will automatically:
 
-**Options:**
-- `-p`, `--save-path <PATH>`: Specify a directory to save the image in.
+1. Set Field to 0.0 T
+2. Wait 10s
+3. Sweep Laser & Save Data
+4. Set Field to 0.1 T
+5. ...repeat until 0.5 T.
 
-**Example:**
+### 5. Comprehensive Command Reference
 
-    lab-cli > arm scope-01
+**Core CLI Commands**
 
-    Arming scope-01 for external trigger...
-    Configuring oscilloscope for single external trigger...
-    Oscilloscope armed. Waiting for trigger signal...
-    Trigger received and acquisition complete!
-    Requesting screen data...
-    Screen captured successfully and saved to: .\triggered_capture_2025-10-10_16-48-15.png
-    Connection closed.
+| Command | Arguments | Description |
+| :--- | :--- | :--- |
+| **`status`** | `[refresh_rate]` | Shows a live dashboard of all connected equipment. |
+| **`inspect`** | `device_id` | Shows detailed properties (health, raw values) for a specific device. |
+| **`run`** | `action_name` `[key=value]...` | Executes a specific hardware action immediately. |
+| **`define`** | `name` | Starts an interactive wizard to create a new experiment recipe. |
+| **`run-loop`** | `name` `--variable` `--start` `--end` `--step` | Loops a defined experiment while varying a specific variable. |
+| **`interactive`** | *(none)* | Enters the persistent shell mode. |
+| **`exit`** | *(none)* | Exits the interactive shell. |
 
-### Project Structure
+**Hardware Actions (Used with `run`)**
 
-    Lab-Device-Controller/
-    ├── lab_cli/
-    │   ├── connections/
-    │   │   ├── __init__.py
-    │   │   └── oscilloscope.py  # Hardware control logic
-    │   ├── __init__.py
-    │   ├── main.py              # Main CLI commands and app definition
-    │   └── models.py            # Data models (dataclasses)
-    ├── .gitignore
-    ├── pyproject.toml           # Package configuration
-    ├── README.md                # This file
-    └── requirement.txt          # Python dependencies
+These are the modular actions registered in your `actions/` folder.
 
+| Device | Action Name | Parameters | Description |
+| :--- | :--- | :--- | :--- |
+| **Cryostat** | **`set-temp`** | `target` | Sets platform temperature (Kelvin). |
+|  | **`set-field`** | `target` | Sets magnetic field (Tesla). |
+| **Laser** | **`sweep-laser`** | `start_nm`, `end_nm`, `speed`, `power` | Performs a wide scan sweep and saves Data/Image. |
+| **General** | **`delay`** | `seconds` | Pauses execution (useful in loops). |
+|  | **`log`** | `message` | Prints a message to the console. |
 
-### For debugging:
+## Developer Guide: Adding New Actions
 
-    Attributes of 'dlc.laser1':
-    [
-        'amp',
-        'config',
-        'ctl',
-        'diagnosis',
-        'dl',
-        'dpss',
-        'emission',
-        'health',
-        'health_txt',
-        'load',
-        'load_head',
-        'nlo',
-        'pd_ext',
-        'power_stabilization',
-        'product_name',
-        'recorder',
-        'save',
-        'scan',
-        'scope',
-        'type',
-        'uv',
-        'wide_scan'
-    ]
+To support new hardware (e.g., a Spectrometer), you do **not** need to modify `main.py`.
 
-    Attributes of 'dlc.laser1.ctl':
-    ['factory_settings', 'fpga_fw_ver', 'head_temperature', 'mode_control', 'motor', 'optimization', 'power', 'remote_control', 'state', 'state_txt', 'tuning_current_min', 'tuning_power_min', 'wavelength_act', 'wavelength_max', 'wavelength_min', 'wavelength_set']
+1. Create a file `lab_cli/actions/spectrometer_actions.py`.
+2. Use the `@register_action` decorator.
 
-    Attributes of 'dlc.laser1.dl':
-    ['cc', 'factory_settings', 'fru_serial_number', 'legacy', 'lock', 'model', 'ontime', 'ontime_txt', 'pc', 'pd', 'pressure_compensation', 'restore', 'serial_number', 'store', 'tc', 'type', 'version']
+```python
+from . import register_action
 
-    Available Methods (Temp/Magnet):
-    [
-        'get_cryooptic_temperature',
-        'get_cryooptic_temperature_sample',
-        'get_cryooptic_temperature_stability',
-        'get_cryooptic_temperature_stable',
-        'get_platform_target_temperature',
-        'get_platform_temperature',
-        'get_platform_temperature_sample',
-        'get_platform_temperature_stability',
-        'get_platform_temperature_stable',
-        'get_stage1_temperature',
-        'get_stage1_temperature_sample',
-        'get_stage2_temperature',
-        'get_stage2_temperature_sample',
-        'get_user1_target_temperature',
-        'get_user1_temperature',
-        'get_user1_temperature_sample',
-        'get_user1_temperature_stability',
-        'get_user1_temperature_stable',
-        'get_user2_target_temperature',
-        'get_user2_temperature',
-        'get_user2_temperature_sample',
-        'get_user2_temperature_stability',
-        'get_user2_temperature_stable',
-        'set_cryooptic_target_temperature',
-        'set_cryooptic_temperature_controller_enabled',
-        'set_platform_bakeout_temperature',
-        'set_platform_target_temperature',
-        'set_user1_target_temperature',
-        'set_user1_temperature_controller_enabled',
-        'set_user2_target_temperature',
-        'set_user2_temperature_controller_enabled'
-    ]
+@register_action("measure-spectrum")
+def action_measure(integration_time: int, context: dict = None):
+    """Captures a spectrum."""
+    print(f"Measuring for {integration_time} ms...")
+    # Add driver code here
+    return True
+```
+
+3. Restart the CLI. The command `run measure-spectrum` is now available!
