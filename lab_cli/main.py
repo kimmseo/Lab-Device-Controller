@@ -64,7 +64,7 @@ def inspect_device(device_id: str):
         return
     console.print(data)
 
-@app.command("interactive")
+@app.command("shell")
 def interactive_shell():
     """Starts the interactive shell."""
     console.print("\n[bold green]Lab CLI Shell. Type 'exit' to quit.[/bold green]")
