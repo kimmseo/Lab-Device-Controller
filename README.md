@@ -4,12 +4,16 @@ A versatile, future-proof command-line interface (CLI) for automating laboratory
 
 This tool has evolved from a simple status monitor into a **modular automation framework**. It allows researchers to define experiment "recipes" interactively, loop over variables (like magnetic field or temperature), and acquire data without writing new Python code for every measurement.
 
+---
+
 ## Supported Hardware
 
-* **Toptica DLC Pro Lasers**: Full control via Toptica SDK (Emission, Power, Wide Scans).
-* **Montana Instruments Cryostation**: Control via REST API/Library (Temperature, Magnetic Field, Pressure).
-* **Keysight Oscilloscopes**: Screen capture and triggering via VISA.
-* **Generic/Mock Devices**: Extensible support for any device driver.
+* **Toptica DLC Pro Lasers** — Full control via Toptica SDK (Emission, Power, Wide Scans).
+* **Montana Instruments Cryostation** — Control via REST API/Library (Temperature, Magnetic Field, Pressure).
+* **Keysight Oscilloscopes** — Screen capture and triggering via VISA.
+* **Generic/Mock Devices** — Extensible support for any device driver.
+
+---
 
 ## Key Features
 
@@ -17,28 +21,29 @@ This tool has evolved from a simple status monitor into a **modular automation f
 
 The core of the system is the **Action Registry**. Instead of hardcoding experiments, the CLI exposes atomic actions (e.g., `set-temp`, `sweep-laser`, `delay`).
 
-* **Future-Proof:** Adding a new instrument is as simple as dropping a new python file into the `actions/` folder. The CLI automatically detects and registers the new commands.
+* **Future-Proof:** Adding a new instrument is as simple as dropping a new Python file into the `actions/` folder. The CLI automatically detects and registers the new commands.
 
 ### 2. "No-Code" Experiment Builder
 
-* **Define:** Create custom experiment workflows interactively in the terminal.
-* **Loop:** Execute these workflows while sweeping a variable (e.g., "Loop `my_scan` while varying `field` from 0T to 1T").
-* **Save:** Recipes are saved to `user_experiments.json` and can be reused instantly.
+* **Define:** Create custom experiment workflows interactively inside the terminal.
+* **Loop:** Execute workflows while sweeping a variable (e.g., “Loop `my_scan` while varying `field` from 0 T to 1 T”).
+* **Save:** Recipes are stored in `user_experiments.json` and can be reused instantly.
 
 ### 3. Automated Data Acquisition
 
-* Laser sweeps are automatically saved as **Excel (.xlsx)** files for analysis and **PNG** images for quick reference.
-* Folders are organized by experiment type and timestamp.
+* Laser sweeps are saved as **Excel (.xlsx)** files for analysis and **PNG** images for quick reference.
+* Output folders are automatically organized by experiment type and timestamp.
+
+---
 
 ## Installation & Setup
 
 ### 1. Prerequisites
 
-Ensure you have Python 3.8+ installed. You also need the NI-VISA drivers installed if using Oscilloscopes via USB/TCP.
+Ensure you have **Python 3.8+** installed.
+NI-VISA drivers are required if using Oscilloscopes via USB/TCP.
 
 ### 2. Install Dependencies
-
-Install the required Python packages:
 
 ```bash
 pip install typer rich requests pyvisa toptica-lasersdk pandas numpy matplotlib scipy sshtunnel openpyxl
@@ -46,7 +51,7 @@ pip install typer rich requests pyvisa toptica-lasersdk pandas numpy matplotlib 
 
 ### 3. Folder Structure
 
-Ensure your project folder is organized as follows:
+Your project should be arranged like this:
 
 ```text
 lab_cli/
@@ -66,7 +71,7 @@ lab_cli/
 
 ### 4. Configuration
 
-Edit `lab_cli/equipment_api.py` to set the IP addresses for your specific lab setup:
+Edit `lab_cli/equipment_api.py` to set the IP addresses for your lab:
 
 ```python
 EQUIPMENT_CONFIG = {
@@ -83,9 +88,13 @@ EQUIPMENT_CONFIG = {
 }
 ```
 
+---
+
 ## Usage Guide
 
-You can run the CLI in **Interactive Mode** (recommended) or as single commands.
+You can run the CLI in **Interactive Mode** (recommended) or via individual commands.
+
+---
 
 ### 1. Interactive Shell
 
@@ -95,22 +104,30 @@ Start the persistent shell session:
 python -m lab_cli.main interactive
 ```
 
-You will see the prompt: `lab-cli >`
+You will see the prompt:
+
+```
+lab-cli >
+```
+
+---
 
 ### 2. Monitoring Status
 
-Check the live health, temperature, and field of all connected devices:
+Check the live health, temperature, and field of all devices:
 
 ```bash
 status
 ```
 
-To see detailed properties of a specific device:
+See detailed properties of a single device:
 
 ```bash
 inspect laser-01
 inspect cryo-01
 ```
+
+---
 
 ### 3. Running Instant Actions
 
@@ -134,67 +151,100 @@ run set-field target=0.5
 run sweep-laser start_nm=1530 end_nm=1535 speed=5 power=0.7
 ```
 
-### 4. Defining & Looping Experiments (The Automation Workflow)
+---
 
-**Step A: Define a Recipe**
-Use the `define` command. You can use `{variable}` syntax to create placeholders.
+### 4. Defining & Looping Experiments
+*(The Automation Workflow)*
+
+Below is an example of creating an experiment called `my_magnet_sweep`.
+
+---
+
+#### Step A: Define the Recipe
 
 ```bash
 define my_magnet_sweep
 ```
 
-  * *Select Action:* `set-field` → Value: `{field}`
-  * *Select Action:* `delay` → Value: `10`
-  * *Select Action:* `sweep-laser` → Values: `1530`, `1535`, `5`, `0.7`
-  * *Select Action:* `finish`
+Follow the interactive prompts:
 
-**Step B: Run the Loop**
-Now, run that recipe while sweeping the `{field}` variable from 0 to 0.5 Tesla.
+1. **Set the Magnetic Field**
+   *Action:* `set-field`
+   *value for `target`:* `{field}`
+   *(Curly braces mark this as a loop variable.)*
+
+2. **Wait for Stability**
+   *Action:* `delay`
+   *value for `seconds`:* `10`
+
+3. **Run the Laser Sweep**
+   *Action:* `sweep-laser`
+   *Parameters:*
+   - `start_nm`: `1530`
+   - `end_nm`: `1535`
+   - `speed`: `5`
+   - `power`: `0.7`
+
+4. **Save & Exit**
+   *Action:* `finish`
+
+---
+
+#### Step B: Run the Loop
 
 ```bash
 run-loop my_magnet_sweep --variable field --start 0 --end 0.5 --step 0.1
 ```
 
-The system will automatically:
+The system will:
 
-1. Set Field to 0.0 T
-2. Wait 10s
-3. Sweep Laser & Save Data
-4. Set Field to 0.1 T
-5. ...repeat until 0.5 T.
+1. Set field to 0.0 T
+2. Wait 10 s
+3. Sweep laser & save data
+4. Set field to 0.1 T
+5. Repeat until 0.5 T
 
-### 5. Comprehensive Command Reference
+---
 
-**Core CLI Commands**
+## 5. Comprehensive Command Reference
 
-| Command | Arguments | Description |
-| :--- | :--- | :--- |
-| **`status`** | `[refresh_rate]` | Shows a live dashboard of all connected equipment. |
-| **`inspect`** | `device_id` | Shows detailed properties (health, raw values) for a specific device. |
-| **`run`** | `action_name` `[key=value]...` | Executes a specific hardware action immediately. |
-| **`define`** | `name` | Starts an interactive wizard to create a new experiment recipe. |
-| **`run-loop`** | `name` `--variable` `--start` `--end` `--step` | Loops a defined experiment while varying a specific variable. |
-| **`interactive`** | *(none)* | Enters the persistent shell mode. |
-| **`exit`** | *(none)* | Exits the interactive shell. |
+### Core CLI Commands
 
-**Hardware Actions (Used with `run`)**
+| Command       | Arguments                                      | Description |
+|-------------- |------------------------------------------------|-------------|
+| `status`      | `[refresh_rate]`                               | Shows live dashboard of all devices. |
+| `inspect`     | `device_id`                                    | Shows detailed status for a device. |
+| `run`         | `action_name` `[key=value]...`                 | Executes a hardware action. |
+| `define`      | `name`                                         | Starts the experiment-builder wizard. |
+| `run-loop`    | `name` `--variable` `--start` `--end` `--step` | Loops an experiment while varying a variable. |
+| `interactive` | *(none)*                                       | Enters persistent shell mode. |
+| `exit`        | *(none)*                                       | Leaves the shell. |
 
-These are the modular actions registered in your `actions/` folder.
+---
 
-| Device | Action Name | Parameters | Description |
-| :--- | :--- | :--- | :--- |
-| **Cryostat** | **`set-temp`** | `target` | Sets platform temperature (Kelvin). |
-|  | **`set-field`** | `target` | Sets magnetic field (Tesla). |
-| **Laser** | **`sweep-laser`** | `start_nm`, `end_nm`, `speed`, `power` | Performs a wide scan sweep and saves Data/Image. |
-| **General** | **`delay`** | `seconds` | Pauses execution (useful in loops). |
-|  | **`log`** | `message` | Prints a message to the console. |
+### Hardware Actions (for `run`)
+
+| Device    | Action Name     | Parameters                         | Description |
+|-----------|------------------|------------------------------------|-------------|
+| Cryostat  | `set-temp`       | `target`                           | Sets platform temperature (K). |
+|           | `set-field`      | `target`                           | Sets magnetic field (T). |
+| Laser     | `sweep-laser`    | `start_nm`, `end_nm`, `speed`, `power` | Performs a wide scan and saves data. |
+| General   | `delay`          | `seconds`                          | Pauses execution. |
+|           | `log`            | `message`                          | Prints a log message. |
+
+---
 
 ## Developer Guide: Adding New Actions
 
-To support new hardware (e.g., a Spectrometer), you do **not** need to modify `main.py`.
+To add support for a new device (e.g., a spectrometer), **you do not need to modify `main.py`**.
 
-1. Create a file `lab_cli/actions/spectrometer_actions.py`.
-2. Use the `@register_action` decorator.
+1. Create a new file:
+
+```
+lab_cli/actions/spectrometer_actions.py
+```
+
+2. Use the `@register_action` decorator:
 
 ```python
 from . import register_action
@@ -207,4 +257,10 @@ def action_measure(integration_time: int, context: dict = None):
     return True
 ```
 
-3. Restart the CLI. The command `run measure-spectrum` is now available!
+3. Restart the CLI. The new command will appear:
+
+```bash
+run measure-spectrum
+```
+
+---
