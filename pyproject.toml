@@ -16,9 +16,9 @@ authors = [
 description = "A CLI tool to monitor the status of lab equipment."
 readme = "README.md"
 requires-python = ">=3.8"
+license = {text = "GPL-3.0"}  # Add this line
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: GPL-3.0 License",
     "Operating System :: OS Independent",
     "Topic :: Scientific/Engineering",
     "Environment :: Console",
@@ -36,3 +36,11 @@ dependencies = [
 # created when the package is installed.
 [project.scripts]
 lab-cli = "lab_cli.main:app"
+
+[tool.setuptools]
+packages = ["lab_cli"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["lab_cli*"]
+exclude = ["Data_Sweeps", "Data_*"]
