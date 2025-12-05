@@ -1,4 +1,4 @@
-# lab_cli/actions/cryo_actions.py
+# Last updated 5 Dec 2025
 from . import register_action
 from ..connections.cryostat import set_magnet_field, set_temperature
 from ..equipment_api import EQUIPMENT_CONFIG

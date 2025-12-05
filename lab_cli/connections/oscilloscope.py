@@ -3,12 +3,6 @@ import platform
 import datetime
 import time
 
-'''
-Oscilloscope connection
-Last changed: 9th Oct 2025
-Changes: Made file path dynamic instead of static
-'''
-
 def find_visa_library():
     if platform.system() == "Windows":
         return None

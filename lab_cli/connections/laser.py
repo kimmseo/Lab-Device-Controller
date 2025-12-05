@@ -17,16 +17,15 @@ def get_laser_details(ip: str) -> dict:
     try:
         # Connect to the laser
         with DLCpro(NetworkConnection(ip)) as dlc:
-            # 1. Get Health Status
+            # Get Health Status
             # .strip() removes whitespace, .upper() ensures "ok" matches "OK"
             health_txt = dlc.system_health_txt.get().strip()
             is_healthy = health_txt.upper() == "OK"
 
-            # 2. Get Emission State
+            # Get Emission State
             emission = dlc.laser1.emission.get()
 
-            # 3. Get Wavelength (FIXED)
-            # Debug output showed 'wavelength_act' is directly under 'ctl'
+            # Get Wavelength
             try:
                 if hasattr(dlc.laser1, 'ctl'):
                     wavelength = dlc.laser1.ctl.wavelength_act.get()
@@ -38,8 +37,8 @@ def get_laser_details(ip: str) -> dict:
             except Exception:
                 wavelength = 0.0
 
-            # 4. Get Power
-            # We try the stabilization input first (most accurate for experiments)
+            # Get Power
+            # Try the stabilization input first (most accurate for experiments)
             # If that fails, we check the 'power' attribute under ctl
             power = 0.0
             try:

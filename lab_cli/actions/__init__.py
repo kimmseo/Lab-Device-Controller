@@ -1,4 +1,4 @@
-# lab_cli/actions/__init__.py
+# Last updated 5 Dec 2025
 from typing import Callable, Dict, Any, List
 import inspect
 
@@ -41,8 +41,8 @@ def get_all_actions():
 def get_action(name: str):
     return ACTION_REGISTRY.get(name)
 
-# --- Import modules here to ensure they register themselves ---
+# Import modules here to ensure they register themselves
 from . import general_actions
 from . import cryo_actions
 from . import laser_actions
-# Future: from . import oscilloscope_actions
+# TODO: from . import oscilloscope_actions

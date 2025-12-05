@@ -1,4 +1,4 @@
-# lab_cli/actions/laser_actions.py
+# Last updated 5 Dec 2025
 import os
 import time
 import pandas as pd

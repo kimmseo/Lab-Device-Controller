@@ -7,7 +7,7 @@ from .connections.laser import get_laser_details
 from .connections.cryostat import get_cryostat_details
 # from .connections.oscilloscope import get_scope_details
 
-# --- Configuration ---
+# Config
 EQUIPMENT_CONFIG = {
     "laser-01": {
         "type": "Toptica Laser",

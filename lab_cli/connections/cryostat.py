@@ -100,7 +100,7 @@ def set_magnet_field(ip: str, target_tesla: float) -> str:
     """Sets the magnetic field[cite: 520]. Auto-enables magnet if needed."""
     if not scryostation: return "Library missing"
 
-    # Safety Check: The PDF mentions limits like +/- 2T or 0.7T depending on model
+    # Safety Check: Limits like +/- 2T or 0.7T depending on model
     # Can add a software limit here
 
     try:
