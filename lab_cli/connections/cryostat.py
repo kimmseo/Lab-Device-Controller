@@ -2,7 +2,11 @@ import sys
 import requests
 import json
 import time
+import socket
+import struct
 from pathlib import Path
+
+CRYO_PORT = 7773
 
 # Dynamic Path Setup
 current_dir = Path(__file__).resolve().parent
@@ -141,3 +145,54 @@ def set_magnet_field(ip: str, target_tesla: float) -> str:
 
     except Exception as e:
         return f"Error setting field: {e}"
+
+def _send_cryo_command(ip: str, cmd_str: str) -> str:
+    """
+    Sends a text command to the Cryostation using the required 2-byte length
+    prefix protocol
+    """
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(3.0) # Set a reasonable timeout
+            s.connect((ip, CRYO_PORT))
+
+            # Protocol: 2 bytes length + Command String
+            # Encode the length as a 2-byte unsigned short
+            # (Big Endian standard for network)
+            cmd_bytes = cmd_str.encode('ascii')
+            length_prefix = struct.pack('>H', len(cmd_bytes))
+
+            # Send full message
+            s.sendall(length_prefix + cmd_bytes)
+
+            # Receive Response Length (First 2 bytes)
+            resp_len_bytes = s.recv(2)
+            if not resp_len_bytes:
+                return "Error: No response"
+
+            resp_len = struct.unpack('>H', resp_len_bytes)[0]
+
+            # Receive Response Body
+            response = s.recv(resp_len).decode('ascii')
+            return response
+
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+def set_vacuum_pump(ip: str, enable: bool) -> str:
+    """
+    Controls the Cryostation Vacuum Pump to manage vibrations
+
+    Args:
+        ip (str): IP address of the cryostat
+        enable (bool): True to RUN (SVPR), False to STOP (SVPS)
+
+    Returns:
+        str: Response from the cryostat (e.g., "OK, Vacuum pump set False")
+    """
+    # SVPR = Set Vacuum Pump Running
+    # SVPS = Set Vacuum Pump Stopped
+    command = "SVPR" if enable else "SVPS"
+
+    response = _send_cryo_command(ip, command)
+    return response

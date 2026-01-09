@@ -46,7 +46,7 @@ NI-VISA drivers are required if using Oscilloscopes via USB/TCP.
 ### 2. Install Dependencies
 
 ```bash
-pip install typer rich requests pyvisa toptica-lasersdk pandas numpy matplotlib scipy sshtunnel openpyxl
+pip install -r requirements.txt
 ```
 
 ### 3. Folder Structure
@@ -86,6 +86,18 @@ EQUIPMENT_CONFIG = {
         "driver": "montana"
     }
 }
+```
+
+### 5. Install the application
+
+```bash
+pip install -e .
+```
+
+### 6. Start the application
+
+```bash
+lab-cli interactive
 ```
 
 ---

@@ -1,11 +1,8 @@
-requests
 typer
 rich
-pyvisa
-toptica-lasersdk
-pandas
 numpy
+pandas
 matplotlib
-scipy
-sshtunnel
 openpyxl
+requests
+toptica-lasersdk
